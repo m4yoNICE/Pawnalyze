@@ -4,6 +4,7 @@ backend/fastapi/__pycache__/
 backend/fastapi/*.pyc
 backend/fastapi/.env
 backend/fastapi/.env.local
+backend/fastapi/stockfish
 
 # Node
 web/node_modules/
