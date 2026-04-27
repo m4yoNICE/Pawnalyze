@@ -1,0 +1,23 @@
+# Python
+backend/fastapi/venv/
+backend/fastapi/__pycache__/
+backend/fastapi/*.pyc
+backend/fastapi/.env
+backend/fastapi/.env.local
+
+# Node
+web/node_modules/
+web/.next/
+web/.env.local
+web/.env
+
+# OS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
