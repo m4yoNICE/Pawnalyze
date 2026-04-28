@@ -11,7 +11,7 @@ engine = Stockfish(
 )
 
 def set_position(fen):
-    return engine.set_fen_position(fen)
+    engine.set_fen_position(fen)
 
 def get_best_move():
     return engine.get_best_move()
@@ -21,3 +21,12 @@ def get_evaluation():
 
 def get_top_moves():
     return engine.get_top_moves(3)
+
+# imported function
+def analyze_position(fen):
+    set_position(fen)
+    return {
+            "best_move": get_best_move(),
+            "evaluation": get_evaluation(),
+            "top_moves": get_top_moves()
+        }
