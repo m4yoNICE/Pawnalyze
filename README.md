@@ -30,14 +30,16 @@ A chess game analyzer that combines Stockfish engine analysis with AI-generated 
 Pawnalyze/
 ├── backend/
 │   └── fastapi/
-│       ├── main.py        # API routes
-│       ├── engine.py      # Stockfish wrapper
-│       ├── parser.py      # PGN → FEN extraction
-│       ├── llm.py         # Gemini commentary
-│       ├── prompt.py      # Coach personality prompts
-│       ├── models.py      # Pydantic schemas
-│       └── stockfish/     # Stockfish binary (not committed)
-└── web/                   # Next.js frontend
+│       ├── main.py
+│       ├── models.py
+│       ├── chesslib/
+│       │   ├── engine.py
+│       │   └── parser.py
+│       ├── ai/
+│       │   ├── llm.py
+│       │   └── prompt.py
+│       └── stockfish/     # not committed
+└── web/
 ```
 
 ---
@@ -66,6 +68,12 @@ npm run dev
 ```
 
 ---
+
+### Deactivating the virtual environment
+
+```bash
+deactivate
+```
 
 ## Environment Variables
 

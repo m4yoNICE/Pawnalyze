@@ -1,8 +1,12 @@
 from fastapi import FastAPI
-from parser import parse_pgn
-from engine import analyze_position
+from chesslib.parser import parse_pgn
+from chesslib.engine import analyze_position
+from ai.llm import generate_commentary
 from models import AnalyzeRequest, AnalyzeResponse
-from llm import generate_commentary
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 
 app = FastAPI()
 
@@ -10,19 +14,19 @@ app = FastAPI()
 async def analyze(request: AnalyzeRequest):
     fens = parse_pgn(request.pgn)
     results = []
-    # loop through each move position and llm results
+    # loop through each move position to stockfish and groyp them as one
     for fen in fens:
         analysis = analyze_position(fen)
-        commentary = generate_commentary(
-            fen,
-            analysis["best_move"],
-            analysis["evaluation"],
-            analysis["top_moves"]
-        )
-        analysis["commentary"] = commentary
-        analysis["fen"] = fen
+        analysis["fen"] = fen  
         results.append(analysis)
 
+    # batch call everyone to llm in a single prompt
+    commentaries = generate_commentary(results)
+
+    # add commentaries to the batch
+    for i in range(len(results)):
+        results[i]["commentary"] = commentaries[i]
+        
     return {"status": "ok", "analysis": results}
 if __name__ == "__main__":
     import uvicorn
