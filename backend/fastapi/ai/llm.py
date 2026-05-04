@@ -5,25 +5,23 @@ import random
 import json
 from ai.prompt import get_prompt
 
-# load gen ai client with api key
 load_dotenv(override=True)
 api_key = os.getenv("GROQ_API_KEY")
-print(f"KEY LOADED: {api_key[:4]}...{api_key[-4:]}")  # debug line
+print(f"KEY LOADED: {api_key[:4]}...{api_key[-4:]}")
 client = Groq(api_key=api_key)
 
 def generate_commentary(results: list):
-    # styles = ["coach", "coach", "mommy", "tsun", "yunjin", "yuuka"]
     styles = ["mommy", "tsun", "yunjin", "yuuka"]
     style = random.choice(styles)
+    persona = get_prompt(style)
 
-    prompt = get_prompt(style)
     moves_text = ""
     for i in range(len(results)):
         move = results[i]
         eval_data = move['evaluation']
-        eval_str = f"{eval_data['type']}:{eval_data['value']}"
-        moves_text += f"Move {i+1}: played={move['best_move']} eval={eval_str}\n"
-    full_prompt = prompt + moves_text + "\nReturn ONLY a JSON array of strings, one per move. No markdown, no backticks, no explanation."
+        val = eval_data['value']
+        eval_str = f"+{val/100:.2f}" if eval_data['type'] == 'cp' else f"#{abs(val)}"
+        moves_text += f"{i+1}.{move['best_move']} {eval_str} [{move['classification']}]\n"
 
     try:
         response = client.chat.completions.create(
@@ -31,16 +29,22 @@ def generate_commentary(results: list):
             messages=[
                 {
                     "role": "system",
-                    "content": prompt + "\nIMPORTANT: You must respond ONLY with a valid JSON array of strings. No apostrophes inside strings. Use proper chess commentary but avoid contractions like don't, it's, I'm, I've. No markdown, no backticks."
+                    "content": (
+                        f"{persona}\n"
+                        f"You are analyzing a full chess game of {len(results)} moves.\n"
+                        "Write rich, contextual commentary — reference earlier moves when relevant, identify patterns, explain WHY each move is good or bad, not just what happened.\n"
+                        "Each commentary: 2-3 sentences. Tactical idea + positional consequence + coaching insight.\n"
+                        "RAW JSON ONLY. Array of exactly N strings. No markdown, no backticks, no contractions."
+                    )
                 },
                 {
                     "role": "user",
-                    "content": f"Analyze these moves and return exactly {len(results)} commentary strings as a JSON array:\n\n" + moves_text
+                    "content": f"This is a complete game. Return ONE JSON array of exactly {len(results)} strings.\n\nGame moves:\n{moves_text}"
                 }
             ]
         )
         text = response.choices[0].message.content.strip()
-        print(f"RAW RESPONSE: {text}")  # add this
+        print(f"RAW RESPONSE: {text}")
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
