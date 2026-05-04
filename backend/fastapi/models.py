@@ -16,6 +16,7 @@ class MoveAnalysis(BaseModel):
     best_move: str
     evaluation: Evaluation
     top_moves: List[TopMove]
+    classification: str
     commentary: str
 
 #================================
