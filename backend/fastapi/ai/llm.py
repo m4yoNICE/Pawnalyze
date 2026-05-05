@@ -15,13 +15,62 @@ def generate_commentary(results: list):
     style = random.choice(styles)
     persona = get_prompt(style)
 
-    moves_text = ""
-    for i in range(len(results)):
-        move = results[i]
-        eval_data = move['evaluation']
-        val = eval_data['value']
-        eval_str = f"+{val/100:.2f}" if eval_data['type'] == 'cp' else f"#{abs(val)}"
-        moves_text += f"{i+1}.{move['best_move']} {eval_str} [{move['classification']}]\n"
+    # filter only highlighted moves
+    highlighted = [
+        (i, m) for i, m in enumerate(results)
+        if m['classification'] in ["blunder", "mistake", "brilliant", "great"]
+    ]
+
+    commentaries = [""] * len(results)
+
+    if highlighted:
+        moves_text = ""
+        for i, move in highlighted:
+            eval_data = move['evaluation']
+            val = eval_data['value']
+            eval_str = f"+{val/100:.2f}" if eval_data['type'] == 'cp' else f"#{abs(val)}"
+            moves_text += f"Move {i+1}: {move['best_move']} {eval_str} [{move['symbol']}]\n"
+
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            f"{persona}\n"
+                            f"Analyze only the highlighted moves below. These are critical moments.\n"
+                            "For each move: explain WHY it was a blunder/mistake/brilliant move. Reference board context.\n"
+                            "2-3 sentences max per move. Tactical idea + consequence + coaching tip.\n"
+                            "RAW JSON ONLY. Object with move numbers as keys. No markdown, no backticks."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Highlighted moves:\n{moves_text}\nReturn JSON object like {{\"1\": \"commentary\", \"5\": \"commentary\"}}"
+                    }
+                ]
+            )
+            text = response.choices[0].message.content.strip()
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            parsed = json.loads(text.strip())
+            for i, _ in highlighted:
+                commentaries[i] = parsed.get(str(i + 1), "[Commentary unavailable]")
+        except Exception as e:
+            print(f"ERROR: {e}")
+
+    # generate overall summary
+    summary = generate_summary(results, persona)
+    return commentaries, summary
+
+
+def generate_summary(results: list, persona: str):
+    blunders = sum(1 for m in results if m['classification'] == 'blunder')
+    mistakes = sum(1 for m in results if m['classification'] == 'mistake')
+    brilliant = sum(1 for m in results if m['classification'] == 'brilliant')
 
     try:
         response = client.chat.completions.create(
@@ -29,30 +78,15 @@ def generate_commentary(results: list):
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                        f"{persona}\n"
-                        f"You are analyzing a full chess game of {len(results)} moves.\n"
-                        "Write rich, contextual commentary — reference earlier moves when relevant, identify patterns, explain WHY each move is good or bad, not just what happened.\n"
-                        "Each commentary: 2-3 sentences. Tactical idea + positional consequence + coaching insight.\n"
-                        "RAW JSON ONLY. Array of exactly N strings. No markdown, no backticks, no contractions."
-                    )
+                    "content": f"{persona}\nWrite a 3-4 sentence overall game summary. Be honest about performance."
                 },
                 {
                     "role": "user",
-                    "content": f"This is a complete game. Return ONE JSON array of exactly {len(results)} strings.\n\nGame moves:\n{moves_text}"
+                    "content": f"Game stats: {len(results)} moves, {blunders} blunders, {mistakes} mistakes, {brilliant} brilliant moves. Summarize the game."
                 }
             ]
         )
-        text = response.choices[0].message.content.strip()
-        print(f"RAW RESPONSE: {text}")
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        parsed = json.loads(text.strip())
-        while len(parsed) < len(results):
-            parsed.append("[Commentary unavailable]")
-        return parsed
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"ERROR: {e}")
-        return ["[Commentary unavailable]"] * len(results)
+        print(f"SUMMARY ERROR: {e}")
+        return "[Summary unavailable]"

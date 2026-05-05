@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from chesslib.parser import parse_pgn
-from chesslib.engine import analyze_position
 from chesslib.engine import analyze_position, classify_move
 from ai.llm import generate_commentary
 from models import AnalyzeRequest, AnalyzeResponse
@@ -13,27 +12,36 @@ app = FastAPI()
 
 @app.post("/analyze")
 async def analyze(request: AnalyzeRequest):
-    fens = parse_pgn(request.pgn)
+    positions = parse_pgn(request.pgn)
     results = []
     cp_before = 0
     # loop through each move position to stockfish and groyp them as one
-    for fen in fens:
-        analysis = analyze_position(fen)
+    for position in positions:
+        analysis = analyze_position(position["fen"])
         cp_after = analysis["evaluation"]["value"]
-        best_move = analysis["best_move"]
-
-        analysis["fen"] = fen  
-        analysis["classification"] = classify_move(cp_before, cp_after, best_move, best_move)
+        
+        classification, symbol = classify_move(
+            position["board_before"],
+            position["move"],
+            cp_before,
+            cp_after,
+            analysis["top_moves"]
+        )
+        
+        analysis["fen"] = position["fen"]
+        analysis["classification"] = classification
+        analysis["symbol"] = symbol
         results.append(analysis)
+        cp_before = cp_after
 
     # batch call everyone to llm in a single prompt
-    commentaries = generate_commentary(results)
+    commentaries, summary = generate_commentary(results)
 
     # add commentaries to the batch
     for i in range(len(results)):
         results[i]["commentary"] = commentaries[i]
         
-    return {"status": "ok", "analysis": results}
+    return {"status": "ok", "analysis": results, "summary": summary}
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
