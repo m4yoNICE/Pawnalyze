@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 app = FastAPI()
 
-@app.post("/analyze")
+@app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(request: AnalyzeRequest):
     positions = parse_pgn(request.pgn)
     results = []

@@ -17,6 +17,7 @@ class MoveAnalysis(BaseModel):
     evaluation: Evaluation
     top_moves: List[TopMove]
     classification: str
+    symbol: str
     commentary: str
 
 #================================
@@ -25,5 +26,7 @@ class AnalyzeRequest(BaseModel):
     depth: int = 15
 
 class AnalyzeResponse(BaseModel):
+    status: str
     analysis: List[MoveAnalysis]
+    summary: str
 
