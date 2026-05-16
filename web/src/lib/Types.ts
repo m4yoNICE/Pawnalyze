@@ -33,3 +33,10 @@ export interface AnalyzeResponse {
 export interface BoardProps {
   fen?: string;
 }
+
+export interface MoveListProps {
+  moves: string[];
+  currentMoveIndex: number;
+  onMoveClick: (index: number) => void;
+  analysis?: MoveAnalysis[];
+}

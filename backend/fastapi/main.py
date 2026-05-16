@@ -8,15 +8,34 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
+# logging purposes
+import logging
+import time
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(request: AnalyzeRequest):
+    logger.info("Request received")
+    start = time.time()
+    
     positions = parse_pgn(request.pgn)
     results = []
     cp_before = 0
-    # loop through each move position to stockfish and groyp them as one
-    for position in positions:
+    
+    for i, position in enumerate(positions):
+        move_start = time.time()
         analysis = analyze_position(position["fen"])
         cp_after = analysis["evaluation"]["value"]
         
@@ -33,14 +52,18 @@ async def analyze(request: AnalyzeRequest):
         analysis["symbol"] = symbol
         results.append(analysis)
         cp_before = cp_after
+        logger.info(f"Move {i+1} done in {time.time() - move_start:.2f}s")
 
-    # batch call everyone to llm in a single prompt
+    stockfish_done = time.time()
+    logger.info(f"Stockfish total: {stockfish_done - start:.2f}s")
+
     commentaries, summary = generate_commentary(results)
+    logger.info(f"LLM total: {time.time() - stockfish_done:.2f}s")
 
-    # add commentaries to the batch
     for i in range(len(results)):
         results[i]["commentary"] = commentaries[i]
-        
+    
+    logger.info(f"Request complete in {time.time() - start:.2f}s")
     return {"status": "ok", "analysis": results, "summary": summary}
 if __name__ == "__main__":
     import uvicorn
