@@ -1,4 +1,4 @@
-# Pawnalyze
+# Pawnalysis
 
 A chess game analyzer that combines Stockfish engine analysis with AI-generated commentary. Paste a PGN, get move-by-move evaluations with human-readable explanations — delivered by one of several AI coach personalities.
 
