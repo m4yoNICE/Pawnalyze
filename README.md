@@ -55,8 +55,10 @@ deactivate
 ```
 ## Environment Variables
 Create `backend/fastapi/.env`:
+```
 GROQ_API_KEY=your_key_here
 Get a free Groq API key at https://console.groq.com
+```
 ---
 ## API
 ### `POST /analyze`
