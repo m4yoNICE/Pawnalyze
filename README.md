@@ -15,7 +15,7 @@ A chess game analyzer that combines Stockfish engine analysis with AI-generated 
 | Backend       | FastAPI + Python                      |
 | Frontend      | Next.js                               |
 ---
-## Project Structure
+```
 Pawnalysis/
 ├── backend/
 │   └── fastapi/
@@ -29,6 +29,7 @@ Pawnalysis/
 │       │   └── prompt.py
 │       └── stockfish/     # not committed
 └── web/
+```
 ---
 ## Getting Started
 ### Backend (FastAPI)
